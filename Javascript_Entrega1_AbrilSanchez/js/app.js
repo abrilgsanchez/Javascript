@@ -1,22 +1,17 @@
-//catalogo
-const catalogo = [
-  { id: 1, nombre: "Auriculares", precio: 25000 },
-  { id: 2, nombre: "Mouse",      precio: 18000 },
-  { id: 3, nombre: "Teclado",    precio: 42000 },
-  { id: 4, nombre: "Webcam",     precio: 35000 },
-  { id: 5, nombre: "Pad Mouse",  precio: 9000 }
-];
-
-
+let catalogo = [];
 let carrito = [];
-
 
 const catalogoDiv = document.getElementById("catalogo");
 const carritoDiv  = document.getElementById("carrito");
 const totalP      = document.getElementById("total");
 
+const formCompra       = document.getElementById("formCompra");
+const inputNombre      = document.getElementById("compradorNombre");
+const inputEmail       = document.getElementById("compradorEmail");
+const inputDireccion   = document.getElementById("compradorDireccion");
+const mensajeCompraDiv = document.getElementById("mensajeCompra");
 
-const STORAGE_KEY = "carrito:v1";
+const STORAGE_KEY = "carritoFinal";
 
 function guardarCarrito() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(carrito));
@@ -29,39 +24,55 @@ function cargarCarrito() {
   }
 }
 
+
 function renderCatalogo() {
   catalogoDiv.innerHTML = "";
 
   for (let i = 0; i < catalogo.length; i++) {
     const p = catalogo[i];
 
-    const card = document.createElement("div");
-    card.setAttribute("data-id", p.id);
+    const itemCat = document.createElement("div");
+    itemCat.className = "item-cat";
+    itemCat.setAttribute("data-id", p.id);
 
-    const titulo = document.createElement("p");
-    titulo.innerHTML = "<strong>" + p.nombre + "</strong> - $" + p.precio;
+    const info = document.createElement("div");
+    info.className = "item-cat-info";
+    info.innerHTML =
+      "<span class='item-cat-titulo'>" +
+      p.nombre +
+      "</span> - $" +
+      p.precio;
 
-    const input = document.createElement("input");
-    input.type = "number";
-    input.min = "1";
-    input.value = "1";
+    const addBlock = document.createElement("div");
+    addBlock.className = "add-block";
 
-    const btn = document.createElement("button");
-    btn.textContent = "Agregar";
-    btn.addEventListener("click", function () {
-      const cant = Number(input.value);
-      if (!Number.isInteger(cant) || cant <= 0) return; 
+    const inputCant = document.createElement("input");
+    inputCant.type = "number";
+    inputCant.min = "1";
+    inputCant.value = "1";
+
+    const btnAgregar = document.createElement("button");
+    btnAgregar.textContent = "Agregar";
+
+    btnAgregar.addEventListener("click", function () {
+      const cant = Number(inputCant.value);
+      if (!Number.isInteger(cant) || cant <= 0) {
+        return;
+      }
       agregarAlCarrito(p.id, cant);
     });
 
-    card.appendChild(titulo);
-    card.appendChild(input);
-    card.appendChild(btn);
-    catalogoDiv.appendChild(card);
+    addBlock.appendChild(inputCant);
+    addBlock.appendChild(btnAgregar);
+
+    itemCat.appendChild(info);
+    itemCat.appendChild(addBlock);
+
+    catalogoDiv.appendChild(itemCat);
   }
 }
 
-
+//render carrito
 function renderCarrito() {
   carritoDiv.innerHTML = "";
 
@@ -74,28 +85,56 @@ function renderCarrito() {
   for (let i = 0; i < carrito.length; i++) {
     const item = carrito[i];
 
-    const row = document.createElement("div");
-    row.setAttribute("data-id", item.id);
+    const itemCart = document.createElement("div");
+    itemCart.className = "item-cart";
+    itemCart.setAttribute("data-id", item.id);
 
-    const info = document.createElement("p");
+    const linea = document.createElement("div");
+    linea.className = "item-cart-line";
+
     const subtotal = item.precio * item.cantidad;
-    info.textContent = item.nombre + " x" + item.cantidad + " — $" + subtotal;
+    linea.textContent =
+      item.nombre + " x" + item.cantidad + " — $" + subtotal;
+
+    const controls = document.createElement("div");
+    controls.className = "controls";
+
+    const inputEditCant = document.createElement("input");
+    inputEditCant.type = "number";
+    inputEditCant.min = "1";
+    inputEditCant.value = String(item.cantidad);
+
+    inputEditCant.addEventListener("change", function () {
+      const nuevaCantidad = Number(inputEditCant.value);
+      if (!Number.isInteger(nuevaCantidad) || nuevaCantidad <= 0) {
+        inputEditCant.value = String(item.cantidad);
+        return;
+      }
+      item.cantidad = nuevaCantidad;
+      guardarCarrito();
+      renderCarrito();
+    });
 
     const btnEliminar = document.createElement("button");
     btnEliminar.textContent = "Eliminar";
+
     btnEliminar.addEventListener("click", function () {
       eliminarDelCarrito(item.id);
     });
 
-    row.appendChild(info);
-    row.appendChild(btnEliminar);
-    carritoDiv.appendChild(row);
+    controls.appendChild(inputEditCant);
+    controls.appendChild(btnEliminar);
+
+    itemCart.appendChild(linea);
+    itemCart.appendChild(controls);
+
+    carritoDiv.appendChild(itemCart);
   }
 
   totalP.textContent = "Total: $" + calcularTotal();
 }
 
-
+//logica carrito
 function agregarAlCarrito(idProducto, cantidad) {
 
   let prod = null;
@@ -105,7 +144,9 @@ function agregarAlCarrito(idProducto, cantidad) {
       break;
     }
   }
-  if (!prod) return;
+  if (!prod) {
+    return;
+  }
 
 
   let encontrado = false;
@@ -116,12 +157,13 @@ function agregarAlCarrito(idProducto, cantidad) {
       break;
     }
   }
+
   if (!encontrado) {
     carrito.push({
       id: prod.id,
       nombre: prod.nombre,
       precio: prod.precio,
-      cantidad: cantidad
+      cantidad: cantidad,
     });
   }
 
@@ -130,7 +172,6 @@ function agregarAlCarrito(idProducto, cantidad) {
 }
 
 function eliminarDelCarrito(idProducto) {
-  //eliminar producto
   carrito = carrito.filter(function (item) {
     return item.id !== idProducto;
   });
@@ -146,6 +187,53 @@ function calcularTotal() {
   return total;
 }
 
+//finalizar compra
+formCompra.addEventListener("submit", function (e) {
+  e.preventDefault();
+
+  const nombreValor = inputNombre.value;
+  const emailValor = inputEmail.value;
+  const dirValor = inputDireccion.value;
+
+  if (carrito.length === 0) {
+    mensajeCompraDiv.textContent = "El carrito está vacío.";
+    mensajeCompraDiv.style.color = "#dc3545";
+    return;
+  }
+
+  if (nombreValor === "" || emailValor === "" || dirValor === "") {
+    mensajeCompraDiv.textContent = "Completá los datos para finalizar.";
+    mensajeCompraDiv.style.color = "#dc3545";
+    return;
+  }
+
+  const totalFinal = calcularTotal();
+  mensajeCompraDiv.textContent =
+    "Compra realizada con éxito. Total: $" + totalFinal;
+  mensajeCompraDiv.style.color = "#198754";
+
+
+  carrito = [];
+  guardarCarrito();
+  renderCarrito();
+});
+
+
+function cargarCatalogoDesdeJSON() {
+  fetch("./data/catalogo.json")
+    .then(function (res) {
+      return res.json();
+    })
+    .then(function (data) {
+      catalogo = data; 
+      renderCatalogo();
+    })
+    .catch(function () {
+      catalogo = [];
+      renderCatalogo();
+    });
+}
+
 cargarCarrito();
-renderCatalogo();
-renderCarrito();
+cargarCatalogoDesdeJSON(); 
+renderCarrito();           
